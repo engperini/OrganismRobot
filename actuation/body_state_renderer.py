@@ -1,13 +1,8 @@
-from core.schemas import ExpressionState, InnerVoiceMessage
-
-
 class BodyStateRenderer:
-    def compose(
-        self,
-        expression: ExpressionState,
-        voice: InnerVoiceMessage,
-    ) -> dict:
+    def compose(self, motor_state: dict | None = None, servo_state: dict | None = None, face_state: dict | None = None, inner_voice: dict | None = None):
         return {
-            "expression": expression.model_dump(),
-            "voice": voice.model_dump(),
+            "motors": motor_state or {},
+            "servos": servo_state or {},
+            "face": face_state or {},
+            "inner_voice": inner_voice or {},
         }
