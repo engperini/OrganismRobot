@@ -1,5 +1,10 @@
 import asyncio
-from api.server import app, register_runtime
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+import uvicorn
+
+from api.server import app as base_app, register_runtime
 from core.state_store import StateStore
 from realtime.sensor_hub import SensorHub
 from realtime.distance_loop import read_distance
@@ -19,6 +24,7 @@ from memory.short_term import ShortTermMemory
 from memory.sqlite_store import SQLiteStore
 from memory.memory_manager import MemoryManager
 
+
 state_store = StateStore()
 sensor_hub = SensorHub()
 perceptor = PerceptorAgent()
@@ -31,6 +37,9 @@ short_term = ShortTermMemory()
 sqlite_store = SQLiteStore()
 memory_manager = MemoryManager(sqlite_store, short_term)
 
+runtime_tasks: list[asyncio.Task] = []
+
+
 register_runtime(
     state_store=state_store,
     sensor_hub=sensor_hub,
@@ -41,6 +50,7 @@ register_runtime(
     last_result=None,
     last_reflection=None,
 )
+
 
 async def realtime_loop():
     while True:
@@ -63,7 +73,10 @@ async def realtime_loop():
         )
         await asyncio.sleep(0.5)
 
+
 async def cognitive_loop():
+    first_cycle = True
+
     while True:
         snapshot = sensor_hub.get()
         current_state = state_store.get()
@@ -71,6 +84,11 @@ async def cognitive_loop():
         perception = perceptor.run(snapshot)
         world_model.state = current_state
         world_state = world_model.update(snapshot, perception)
+
+        if first_cycle and world_state.mode == "booting":
+            world_state = world_state.copy(update={"mode": "idle", "current_goal": "monitor safely"})
+            first_cycle = False
+
         state_store.update(**world_state.model_dump())
 
         thought = thinker.run(world_state)
@@ -98,13 +116,31 @@ async def cognitive_loop():
 
         await asyncio.sleep(1.0)
 
-async def main():
-    await asyncio.gather(
-        realtime_loop(),
-        cognitive_loop(),
-    )
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    state_store.update(mode="booting", current_goal="initialize organism")
+
+    realtime_task = asyncio.create_task(realtime_loop(), name="realtime_loop")
+    cognitive_task = asyncio.create_task(cognitive_loop(), name="cognitive_loop")
+
+    runtime_tasks.extend([realtime_task, cognitive_task])
+
+    try:
+        yield
+    finally:
+        for task in runtime_tasks:
+            task.cancel()
+
+        await asyncio.gather(*runtime_tasks, return_exceptions=True)
+        runtime_tasks.clear()
+
+
+app = FastAPI(title=base_app.title, lifespan=lifespan)
+
+for route in base_app.router.routes:
+    app.router.routes.append(route)
+
 
 if __name__ == "__main__":
-    import uvicorn
-    asyncio.get_event_loop().create_task(main())
-    uvicorn.run("api.server:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
