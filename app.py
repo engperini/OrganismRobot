@@ -1,5 +1,5 @@
 import asyncio
-from api.server import app
+from api.server import app, register_runtime
 from core.state_store import StateStore
 from realtime.sensor_hub import SensorHub
 from realtime.distance_loop import read_distance
@@ -31,6 +31,17 @@ short_term = ShortTermMemory()
 sqlite_store = SQLiteStore()
 memory_manager = MemoryManager(sqlite_store, short_term)
 
+register_runtime(
+    state_store=state_store,
+    sensor_hub=sensor_hub,
+    executor=executor,
+    memory_manager=memory_manager,
+    last_thought=None,
+    last_plan=None,
+    last_result=None,
+    last_reflection=None,
+)
+
 async def realtime_loop():
     while True:
         distance = await read_distance()
@@ -55,7 +66,10 @@ async def realtime_loop():
 async def cognitive_loop():
     while True:
         snapshot = sensor_hub.get()
+        current_state = state_store.get()
+
         perception = perceptor.run(snapshot)
+        world_model.state = current_state
         world_state = world_model.update(snapshot, perception)
         state_store.update(**world_state.model_dump())
 
@@ -63,6 +77,13 @@ async def cognitive_loop():
         plan = compiler.run(thought)
         result = executor.run_plan(plan, world_state)
         reflection = reflector.run(world_state, thought, plan, result)
+
+        register_runtime(
+            last_thought=thought,
+            last_plan=plan,
+            last_result=result,
+            last_reflection=reflection,
+        )
 
         memory_manager.remember({
             "snapshot": snapshot.model_dump(),
