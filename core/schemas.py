@@ -106,11 +106,32 @@ class ExecutionResult(BaseModel):
     duration_s: float = 0.0
 
 
+# class Reflection(BaseModel):
+#     episode_summary: str
+#     lesson: Optional[str] = None
+#     store_structured: bool = False
+#     novelty_score: float = 0.0
+#     policy_feedback: Optional[Dict[str, Any]] = None
+
 class Reflection(BaseModel):
     episode_summary: str
+
     lesson: Optional[str] = None
+
+    # ===== METACOGNIÇÃO =====
+    repetition_detected: bool = False
+    suggested_next_focus: Optional[str] = None
+    suggested_mood_shift: Optional[str] = None
+    avoid_next_intent_type: Optional[str] = None
+    reflection_hint: Optional[str] = None
+
+    # ===== ARMAZENAMENTO =====
     store_structured: bool = False
+
+    # ===== MÉTRICAS =====
     novelty_score: float = 0.0
+
+    # ===== POLICY =====
     policy_feedback: Optional[Dict[str, Any]] = None
 
 

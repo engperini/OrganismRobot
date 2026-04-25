@@ -41,6 +41,11 @@ class MemoryManager:
                 "completed_actions": result.get("completed_actions"),
                 "episode_summary": reflection.get("episode_summary"),
                 "lesson": reflection.get("lesson"),
+                "repetition_detected": reflection.get("repetition_detected"),
+                "reflection_hint": reflection.get("reflection_hint"),
+                "suggested_next_focus": reflection.get("suggested_next_focus"),
+                "suggested_mood_shift": reflection.get("suggested_mood_shift"),
+                "avoid_next_intent_type": reflection.get("avoid_next_intent_type"),
             })
 
         return compact

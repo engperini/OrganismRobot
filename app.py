@@ -121,7 +121,8 @@ async def cognitive_loop():
             result = executor.run_plan(plan, world_state)
             exec_dt = time.perf_counter() - exec_started
 
-            reflection = reflector.run(world_state, thought, plan, result)
+            #reflection = reflector.run(world_state, thought, plan, result) #old
+            reflection = reflector.run(world_state, thought, plan, result, recent_context=recent_context)
 
             actions = [action.tool for action in plan.actions]
 
@@ -154,7 +155,8 @@ async def cognitive_loop():
                 "[reflector] "
                 f"novelty={reflection.novelty_score} "
                 f"store={reflection.store_structured} "
-                f"lesson={reflection.lesson!r}"
+                #f"lesson={reflection.lesson!r}"
+                f"lesson={reflection.lesson!r} repetition={reflection.repetition_detected} hint={reflection.reflection_hint!r}"
             )
 
             cycle_dt = time.perf_counter() - cycle_started
