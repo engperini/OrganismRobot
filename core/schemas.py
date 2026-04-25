@@ -48,13 +48,37 @@ class WorldState(BaseModel):
     last_error: Optional[str] = None
 
 
+# class Thought(BaseModel):
+#     assessment: str
+#     intent: str
+#     strategy: List[str]
+#     mood: Optional[str] = None
+#     store_candidate: bool = False
+#     why_store: Optional[str] = None
+
+
 class Thought(BaseModel):
     assessment: str
     intent: str
     strategy: List[str]
+
+    # Intent is free-form. intent_type is a broad semantic hint, not a hard limitation.
+    intent_type: str = "observe"
+
     mood: Optional[str] = None
+    attention_target: Optional[str] = None
+
+    external_message: Optional[str] = None
+
+    confidence: float = 0.5
+    urgency: float = 0.0
+    curiosity: float = 0.0
+
     store_candidate: bool = False
     why_store: Optional[str] = None
+
+
+
 
 
 class PlanAction(BaseModel):

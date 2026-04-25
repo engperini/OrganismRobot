@@ -1,9 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 import traceback
+import time
 
 from fastapi import FastAPI
 import uvicorn
+from core.config import settings
 
 from api.server import app as base_app
 from api.runtime import register_runtime
@@ -104,10 +106,56 @@ async def cognitive_loop():
 
             state_store.update(**world_state.model_dump())
 
+            cycle_started = time.perf_counter()
+
+            llm_started = time.perf_counter()
             thought = thinker.run(world_state)
+            llm_dt = time.perf_counter() - llm_started
+
             plan = compiler.run(thought)
+
+            exec_started = time.perf_counter()
             result = executor.run_plan(plan, world_state)
+            exec_dt = time.perf_counter() - exec_started
+
             reflection = reflector.run(world_state, thought, plan, result)
+
+            actions = [action.tool for action in plan.actions]
+
+            print(
+                "[cognition] "
+                f"llm_dt={llm_dt:.2f}s "
+                f"intent_type={getattr(thought, 'intent_type', None)} "
+                f"intent={thought.intent!r} "
+                f"mood={thought.mood} "
+                f"confidence={getattr(thought, 'confidence', None)} "
+                f"urgency={getattr(thought, 'urgency', None)} "
+                f"curiosity={getattr(thought, 'curiosity', None)}"
+            )
+
+            print(
+                "[compiler] "
+                f"actions={actions} "
+                f"policy={plan.policy}"
+            )
+
+            print(
+                "[executor] "
+                f"status={result.status} "
+                f"completed={result.completed_actions} "
+                f"duration={exec_dt:.2f}s "
+                f"render={executor.last_render}"
+            )
+
+            print(
+                "[reflector] "
+                f"novelty={reflection.novelty_score} "
+                f"store={reflection.store_structured} "
+                f"lesson={reflection.lesson!r}"
+            )
+
+            cycle_dt = time.perf_counter() - cycle_started
+            print(f"[cycle] total_dt={cycle_dt:.2f}s")
 
             register_runtime(
                 last_thought=thought,
@@ -133,7 +181,7 @@ async def cognitive_loop():
             print("[runtime] cognitive_loop error")
             traceback.print_exc()
 
-        await asyncio.sleep(1.0)
+        await asyncio.sleep(settings.LOOP_INTERVAL)
 
 
 @asynccontextmanager
