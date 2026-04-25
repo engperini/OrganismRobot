@@ -1,14 +1,12 @@
 import asyncio
 from contextlib import asynccontextmanager
+import traceback
 
 from fastapi import FastAPI
 import uvicorn
 
-
-
 from api.server import app as base_app
 from api.runtime import register_runtime
-
 from core.state_store import StateStore
 from realtime.sensor_hub import SensorHub
 from realtime.distance_loop import read_distance
@@ -57,82 +55,99 @@ register_runtime(
 
 
 async def realtime_loop():
+    print("[runtime] realtime_loop started")
     while True:
-        distance = await read_distance()
-        battery = await read_battery_pct()
-        motors = await read_motor_state()
-        servos = await read_servo_state()
-        last_error = await read_last_error()
-        camera_summary = await capture_frame_summary()
-        audio_summary = await read_audio_summary()
+        try:
+            distance = await read_distance()
+            battery = await read_battery_pct()
+            motors = await read_motor_state()
+            servos = await read_servo_state()
+            last_error = await read_last_error()
+            camera_summary = await capture_frame_summary()
+            audio_summary = await read_audio_summary()
 
-        sensor_hub.update(
-            distance_front_cm=distance,
-            battery_pct=battery,
-            last_error=last_error,
-            camera_summary=camera_summary,
-            audio_summary=audio_summary,
-            **motors,
-            **servos,
-        )
+            sensor_hub.update(
+                distance_front_cm=distance,
+                battery_pct=battery,
+                last_error=last_error,
+                camera_summary=camera_summary,
+                audio_summary=audio_summary,
+                **motors,
+                **servos,
+            )
+        except Exception:
+            print("[runtime] realtime_loop error")
+            traceback.print_exc()
+
         await asyncio.sleep(0.5)
 
 
 async def cognitive_loop():
+    print("[runtime] cognitive_loop started")
     first_cycle = True
 
     while True:
-        snapshot = sensor_hub.get()
-        current_state = state_store.get()
+        try:
+            snapshot = sensor_hub.get()
+            current_state = state_store.get()
 
-        perception = perceptor.run(snapshot)
-        world_model.state = current_state
-        world_state = world_model.update(snapshot, perception)
+            perception = perceptor.run(snapshot)
+            world_model.state = current_state
+            world_state = world_model.update(snapshot, perception)
 
-        if first_cycle and world_state.mode == "booting":
-            world_state = world_state.copy(update={"mode": "idle", "current_goal": "monitor safely"})
-            first_cycle = False
+            if first_cycle and world_state.mode == "booting":
+                world_state = world_state.copy(update={
+                    "mode": "idle",
+                    "current_goal": "monitor safely",
+                })
+                first_cycle = False
 
-        state_store.update(**world_state.model_dump())
+            state_store.update(**world_state.model_dump())
 
-        thought = thinker.run(world_state)
-        plan = compiler.run(thought)
-        result = executor.run_plan(plan, world_state)
-        reflection = reflector.run(world_state, thought, plan, result)
+            thought = thinker.run(world_state)
+            plan = compiler.run(thought)
+            result = executor.run_plan(plan, world_state)
+            reflection = reflector.run(world_state, thought, plan, result)
 
-        register_runtime(
-            last_thought=thought,
-            last_plan=plan,
-            last_result=result,
-            last_reflection=reflection,
-        )
+            register_runtime(
+                last_thought=thought,
+                last_plan=plan,
+                last_result=result,
+                last_reflection=reflection,
+            )
 
-        memory_manager.remember({
-            "snapshot": snapshot.model_dump(),
-            "perception": perception.model_dump(),
-            "thought": thought.model_dump(),
-            "plan": plan.model_dump(),
-            "result": result.model_dump(),
-            "reflection": reflection.model_dump(),
-        })
-        memory_manager.persist_event(str(perception.model_dump()))
-        memory_manager.persist_episode(thought, result, reflection)
+            print(f"[runtime] thought={thought.intent} mood={thought.mood}")
+
+            memory_manager.remember({
+                "snapshot": snapshot.model_dump(),
+                "perception": perception.model_dump(),
+                "thought": thought.model_dump(),
+                "plan": plan.model_dump(),
+                "result": result.model_dump(),
+                "reflection": reflection.model_dump(),
+            })
+            memory_manager.persist_event(str(perception.model_dump()))
+            memory_manager.persist_episode(thought, result, reflection)
+
+        except Exception:
+            print("[runtime] cognitive_loop error")
+            traceback.print_exc()
 
         await asyncio.sleep(1.0)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    print("[runtime] lifespan startup")
     state_store.update(mode="booting", current_goal="initialize organism")
 
-    realtime_task = asyncio.create_task(realtime_loop(), name="realtime_loop")
-    cognitive_task = asyncio.create_task(cognitive_loop(), name="cognitive_loop")
-
-    runtime_tasks.extend([realtime_task, cognitive_task])
+    runtime_tasks.append(asyncio.create_task(realtime_loop(), name="realtime_loop"))
+    runtime_tasks.append(asyncio.create_task(cognitive_loop(), name="cognitive_loop"))
 
     try:
         yield
     finally:
+        print("[runtime] lifespan shutdown")
         for task in runtime_tasks:
             task.cancel()
 
@@ -147,4 +162,4 @@ for route in base_app.router.routes:
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

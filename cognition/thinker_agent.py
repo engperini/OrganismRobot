@@ -19,7 +19,7 @@ class ThinkerAgent:
 
         prompt = json.dumps(
             {
-                "world_state": world_state.model_dump(),
+                "world_state": world_state.model_dump(mode="json"),
                 "memories": memories[-5:] if isinstance(memories, list) else [],
                 "required_json_schema": {
                     "assessment": "short human-readable situation assessment",
