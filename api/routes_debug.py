@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.server import get_runtime
+from api.runtime import get_runtime
 
 router = APIRouter(prefix="/debug", tags=["debug"])
 

@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from api.server import get_runtime
+from api.runtime import get_runtime
 
 router = APIRouter(prefix="/control", tags=["control"])
 

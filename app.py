@@ -4,7 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import uvicorn
 
-from api.server import app as base_app, register_runtime
+
+
+from api.server import app as base_app
+from api.runtime import register_runtime
+
 from core.state_store import StateStore
 from realtime.sensor_hub import SensorHub
 from realtime.distance_loop import read_distance

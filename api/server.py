@@ -3,13 +3,7 @@ from api.routes_control import router as control_router
 from api.routes_status import router as status_router
 from api.routes_debug import router as debug_router
 
-_runtime = {}
-
-def register_runtime(**kwargs):
-    _runtime.update(kwargs)
-
-def get_runtime(name: str):
-    return _runtime.get(name)
+from api.runtime import register_runtime
 
 def create_app() -> FastAPI:
     app = FastAPI(title="OrganismRobot")
