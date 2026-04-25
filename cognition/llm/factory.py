@@ -1,12 +1,11 @@
 """Factory for selecting the active LLM provider."""
-import os
-
+from core.config import settings
 from cognition.llm.base import LLMProvider
 from cognition.llm.mock_provider import MockProvider
 
 
 def get_llm_provider() -> LLMProvider:
-    provider = os.getenv("LLM_PROVIDER", "mock").lower().strip()
+    provider = settings.LLM_PROVIDER.lower()
 
     if provider == "mock":
         return MockProvider()

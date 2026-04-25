@@ -1,28 +1,28 @@
-"""OpenAI LLM provider."""
-import json
-import os
-from typing import Dict, Any
 
+import json
 from openai import OpenAI
 
+from core.config import settings
 from cognition.llm.base import LLMProvider
 
 
 class OpenAIProvider(LLMProvider):
     def __init__(self):
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set")
+        if not settings.OPENAI_API_KEY:
+            raise RuntimeError("OPENAI_API_KEY not set")
 
-        self.model = os.getenv("OPENAI_MODEL", "gpt-5.2")
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.model = settings.OPENAI_MODEL
 
-    def complete_json(self, prompt: str, system: str) -> Dict[str, Any]:
-        response = self.client.responses.create(
+    def complete_json(self, prompt: str, system: str):
+        response = self.client.chat.completions.create(
             model=self.model,
-            instructions=system,
-            input=prompt,
+            temperature=0.4,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
         )
 
-        text = response.output_text.strip()
+        text = response.choices[0].message.content
         return json.loads(text)

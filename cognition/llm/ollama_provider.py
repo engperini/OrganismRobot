@@ -1,19 +1,18 @@
 """Ollama LLM provider."""
-import json
-import os
-from typing import Dict, Any
 
+import json
 import httpx
 
+from core.config import settings
 from cognition.llm.base import LLMProvider
 
 
 class OllamaProvider(LLMProvider):
     def __init__(self):
-        self.base_url = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-        self.model = os.getenv("OLLAMA_MODEL", "llama3.2")
+        self.url = settings.OLLAMA_URL
+        self.model = settings.OLLAMA_MODEL
 
-    def complete_json(self, prompt: str, system: str) -> Dict[str, Any]:
+    def complete_json(self, prompt: str, system: str):
         payload = {
             "model": self.model,
             "prompt": f"{system}\n\n{prompt}",
@@ -21,10 +20,9 @@ class OllamaProvider(LLMProvider):
             "format": "json",
         }
 
-        with httpx.Client(timeout=60.0) as client:
-            response = client.post(f"{self.base_url}/api/generate", json=payload)
-            response.raise_for_status()
-            data = response.json()
+        response = httpx.post(f"{self.url}/api/generate", json=payload, timeout=60.0)
+        response.raise_for_status()
 
-        text = data.get("response", "{}").strip()
-        return json.loads(text)
+        data = response.json()
+        return json.loads(data["response"])
+
