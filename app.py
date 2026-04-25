@@ -7,6 +7,8 @@ from fastapi import FastAPI
 import uvicorn
 from core.config import settings
 
+from api.routes_robot import router as robot_router
+
 from api.server import app as base_app
 from api.runtime import register_runtime
 from core.state_store import StateStore
@@ -213,6 +215,9 @@ app = FastAPI(title=base_app.title, lifespan=lifespan)
 for route in base_app.router.routes:
     app.router.routes.append(route)
 
+
+# incluir as rotas do robô físico
+app.include_router(robot_router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)

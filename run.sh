@@ -12,4 +12,7 @@ fi
 # shellcheck disable=SC1091
 . "$VENV_DIR/bin/activate"
 
+# Adiciona project_eva ao PYTHONPATH
+export PYTHONPATH="$PROJECT_DIR/..:$PROJECT_DIR/../project_eva"
+
 exec python "$PROJECT_DIR/app.py"
