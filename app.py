@@ -109,7 +109,10 @@ async def cognitive_loop():
             cycle_started = time.perf_counter()
 
             llm_started = time.perf_counter()
-            thought = thinker.run(world_state)
+            #thought = thinker.run(world_state) #antes da memoria
+            recent_context = memory_manager.get_recent_context(limit=5)
+            thought = thinker.run(world_state, memories=recent_context)
+
             llm_dt = time.perf_counter() - llm_started
 
             plan = compiler.run(thought)

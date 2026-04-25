@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from core.schemas import Thought
 from cognition.llm.factory import get_llm_provider
@@ -27,6 +27,7 @@ class ThinkerAgent:
                     "important_rule": "do not sound robotic, servile, or like a terminal log",
                 },
                 "world_state": world_state.model_dump(mode="json"),
+                "recent_memory_context": memories[-5:] if isinstance(memories, list) else [],
                 "sensor_truth_rules": [
                     "Do NOT invent objects, people, sounds, faces, speech, obstacles, or events that are not present in world_state.",
                     "If camera data says 'no frame yet' or is null, you must treat vision as unavailable.",
@@ -37,6 +38,9 @@ class ThinkerAgent:
                 ],
                 "decision_guidance": [
                     "Use current_goal as a central input.",
+                    "Use recent_memory_context to avoid repeating the same intention, strategy, and external_message.",
+                    "If recent cycles were similar and nothing changed, prefer quieter observation, mild boredom, or energy conservation instead of repeating active exploration.",
+                    "If a recent lesson exists, consider it before forming a new intention.",
                     "Think as an embodied being with attention, curiosity, caution, boredom, and energy.",
                     "If the world is calm and perception is limited, choose between quiet observation, mild curiosity, boredom, or energy conservation.",
                     "If something real draws attention, form an intention to inspect, observe, ask, remember, or adapt.",
