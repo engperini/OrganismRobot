@@ -23,10 +23,16 @@ class Executor:
         failed_action = None
         failure_reason = None
 
+        plan_expression = getattr(plan, "expression", None) or {}
+
         expression = self.expression_mapper.map(
-            mood=getattr(world_state, "mood", None),
+            mood=plan_expression.get("mood") or getattr(world_state, "mood", None),
             intent=getattr(plan, "memory_hint", None),
             risk_flags=getattr(world_state, "risk_flags", []),
+            attention_target=plan_expression.get("attention_target") or getattr(world_state, "attention_target", None),
+            urgency=(getattr(plan, "policy", {}) or {}).get("urgency", 0.0),
+            curiosity=(getattr(plan, "policy", {}) or {}).get("curiosity", 0.0),
+            confidence=(getattr(plan, "policy", {}) or {}).get("confidence", 0.5),
         )
         face_state = self.face_renderer.render(expression)
         inner_voice = self.inner_voice.speak(
