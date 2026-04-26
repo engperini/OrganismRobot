@@ -6,7 +6,9 @@ from project_eva.core.robot_core import RobotCore
 robot = RobotCore()
 robot.start()
 def execute_action(action: str, params: dict | None = None):
-    duration = params.get("duration") if params else None
+    #duration = params.get("duration") if params else None
+    duration = float(params.get("duration")) if params and "duration" in params else None
+    print(f"Executando ação: {action} com duration: {duration}")
 
     if action == "motors.forward":
         robot.move_forward(duration)
