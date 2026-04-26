@@ -22,6 +22,7 @@ class Executor:
         completed = 0
         failed_action = None
         failure_reason = None
+        results = []
 
         plan_expression = getattr(plan, "expression", None) or {}
 
@@ -48,10 +49,11 @@ class Executor:
             try:
                 result = self.router.dispatch(action.tool, action.args)
                 completed += 1
+                results.append({"tool": action.tool, "result": result})
 
                 if action.tool.startswith("motors."):
                     motor_state = result
-                elif action.tool.startswith("pan_tilt."):
+                elif action.tool.startswith("servos."):
                     servo_state = result
             except Exception as exc:
                 failed_action = action.tool
@@ -63,6 +65,7 @@ class Executor:
             servo_state=servo_state,
             face_state=face_state,
             inner_voice={"text": inner_voice.text, "duration_s": inner_voice.duration_s},
+            perception_summary=getattr(world_state, "perception_summary", None),
         )
 
         status = "success" if failed_action is None else "partial_success"
@@ -71,6 +74,7 @@ class Executor:
             plan_id=plan.plan_id,
             status=status,
             completed_actions=completed,
+            actions_result=results,  # novo campo para guardar os dicts
             failed_action=failed_action,
             failure_reason=failure_reason,
             duration_s=time.time() - started,

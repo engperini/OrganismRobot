@@ -6,34 +6,43 @@ class CompilerAgent:
         actions = []
         intent_type = (getattr(thought, "intent_type", "") or "").lower()
 
-        # This is not the safety layer.
-        # It only maps broad cognitive intention into minimal executable body behavior.
-
+        # Mapeamento de intenções para comandos físicos
         if any(key in intent_type for key in ["safe_stop", "protect", "error"]):
             actions.append(PlanAction(tool="motors.stop"))
-            actions.append(PlanAction(tool="pan_tilt.center"))
+            actions.append(PlanAction(tool="servos.center"))
 
         elif any(key in intent_type for key in ["explore", "curious", "search"]):
-            actions.append(PlanAction(tool="pan_tilt.explore_step"))
+            actions.append(PlanAction(tool="motors.forward", args={"duration": 2.0}))
+            actions.append(PlanAction(tool="servos.random"))
 
         elif any(key in intent_type for key in ["inspect", "investigate", "sound", "image", "attention", "human", "interact"]):
             actions.append(PlanAction(tool="motors.stop"))
-            actions.append(PlanAction(tool="pan_tilt.look_left"))
-            actions.append(PlanAction(tool="pan_tilt.look_right"))
+            actions.append(PlanAction(tool="servos.look", args={"x": -0.5, "y": 0.0}))
+            actions.append(PlanAction(tool="servos.look", args={"x": 0.5, "y": 0.0}))
+
+        elif any(key in intent_type for key in ["turn_left", "rotate_left"]):
+            actions.append(PlanAction(tool="motors.turn_left", args={"duration": 1.5}))
+
+        elif any(key in intent_type for key in ["turn_right", "rotate_right"]):
+            actions.append(PlanAction(tool="motors.turn_right", args={"duration": 1.5}))
+
+        elif any(key in intent_type for key in ["backward", "retreat"]):
+            actions.append(PlanAction(tool="motors.backward", args={"duration": 2.0}))
 
         elif any(key in intent_type for key in ["rest", "sleep", "idle", "observe", "wait", "monitor"]):
             actions.append(PlanAction(tool="motors.stop"))
+            actions.append(PlanAction(tool="servos.center"))
 
         else:
-            # Unknown intention is allowed cognitively.
-            # Execution stays conservative until more tools exist.
+            # Intenção desconhecida → comportamento conservador
             actions.append(PlanAction(tool="motors.stop"))
+            actions.append(PlanAction(tool="servos.center"))
 
         return ExecutablePlan(
             plan_id="plan_static",
             actions=actions,
             policy={
-                "allow_base_motion": False,
+                "allow_base_motion": True,
                 "max_duration_s": 3,
                 "source_intent_type": intent_type,
                 "confidence": getattr(thought, "confidence", 0.5),

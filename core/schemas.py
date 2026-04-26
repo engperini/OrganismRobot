@@ -97,13 +97,23 @@ class ExecutablePlan(BaseModel):
     memory_hint: Optional[str] = None
 
 
+# class ExecutionResult(BaseModel):
+#     plan_id: str
+#     status: str
+#     completed_actions: int = 0
+#     failed_action: Optional[str] = None
+#     failure_reason: Optional[str] = None
+#     duration_s: float = 0.0
+
 class ExecutionResult(BaseModel):
     plan_id: str
     status: str
     completed_actions: int = 0
+    actions_result: List[Dict[str, Any]] = Field(default_factory=list)  # ajuste aqui
     failed_action: Optional[str] = None
     failure_reason: Optional[str] = None
     duration_s: float = 0.0
+
 
 
 # class Reflection(BaseModel):

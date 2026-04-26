@@ -50,6 +50,14 @@ class PanTiltController:
         self._write_servos(self.x, self.y)
         self.detach()
 
+    @property
+    def pan_angle(self):
+        return self.x
+
+    @property
+    def tilt_angle(self):
+        return self.y
+    
     def _clamp(self, value):
         return max(self.servo_min, min(self.servo_max, value))
 

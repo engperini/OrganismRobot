@@ -26,6 +26,7 @@ class WorldModel:
             "risk_flags": perception.risk_flags,
             "motors_state": motors_state,
             "mood": mood,
+            "perception_summary": perception.summary,
             "attention_target": perception.attention_candidates[0] if perception.attention_candidates else None,
         })
         return self.state

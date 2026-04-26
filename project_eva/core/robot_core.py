@@ -2,6 +2,8 @@ import threading
 import time
 import RPi.GPIO as GPIO
 
+from core.schemas import RawSensorSnapshot
+
 from project_eva.hardware.servos import PanTiltController
 from project_eva.hardware.motor import Motor
 from project_eva.hardware.drive import RobotCar
@@ -43,6 +45,14 @@ class RobotCore:
         self.exploring = False
 
         self.thread = threading.Thread(target=self.loop, daemon=True)
+        self.last_snapshot = RawSensorSnapshot(
+            left_motor_state="stop",
+            right_motor_state="stop",
+            servo_pan_deg=0,
+            servo_tilt_deg=0,
+            battery_pct=None,
+            last_error=None
+        )
 
     def start(self):
         self.thread.start()
@@ -62,6 +72,9 @@ class RobotCore:
             if self.exploring:
                 self.servos.random_move()
                 time.sleep(1)
+                self.last_snapshot.servo_pan_deg = self.servos.pan_angle
+                self.last_snapshot.servo_tilt_deg = self.servos.tilt_angle
+
             else:
                 time.sleep(0.2)
 
@@ -75,8 +88,15 @@ class RobotCore:
     def disable_exploring(self):
         self.exploring = False
 
+    def snapshot(self) -> RawSensorSnapshot:
+        return self.last_snapshot
+
+
     def look(self, x, y):
         self.servos.move_smooth(x, y)
+        self.last_snapshot.servo_pan_deg = self.servos.pan_angle
+        self.last_snapshot.servo_tilt_deg = self.servos.tilt_angle
+
 
     # -------------------------
     # NOVOS CONTROLES DA BASE
@@ -85,10 +105,15 @@ class RobotCore:
     def move_forward(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.forward(d)
+        self.last_snapshot.left_motor_state = "forward"
+        self.last_snapshot.right_motor_state = "forward"
+
 
     def move_backward(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.backward(d)
+        self.last_snapshot.left_motor_state = "backward"
+        self.last_snapshot.right_motor_state = "backward"
 
     def turn_left(self, duration: float = None):
         d = duration if duration is not None else self.default_duration

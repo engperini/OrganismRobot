@@ -1,8 +1,25 @@
+# class BodyStateRenderer:
+#     def compose(self, motor_state: dict | None = None, servo_state: dict | None = None, face_state: dict | None = None, inner_voice: dict | None = None):
+#         return {
+#             "motors": motor_state or {},
+#             "servos": servo_state or {},
+#             "face": face_state or {},
+#             "inner_voice": inner_voice or {},
+#         }
+
 class BodyStateRenderer:
-    def compose(self, motor_state: dict | None = None, servo_state: dict | None = None, face_state: dict | None = None, inner_voice: dict | None = None):
+    def compose(
+        self,
+        motor_state: dict | None = None,
+        servo_state: dict | None = None,
+        face_state: dict | None = None,
+        inner_voice: dict | None = None,
+        perception_summary: str | None = None,
+    ):
         return {
             "motors": motor_state or {},
             "servos": servo_state or {},
             "face": face_state or {},
             "inner_voice": inner_voice or {},
+            "perception_summary": perception_summary or "",
         }

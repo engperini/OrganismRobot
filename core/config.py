@@ -16,6 +16,12 @@ class Settings:
 
     # ===== SYSTEM =====
     LOOP_INTERVAL: float = 10.0
+    LOOP_INTERVAL_COGNITION: float = 1.0
+    DISTANCE_BLOCK_THRESHOLD: int = 20
+
+    # ===== ROBOT CONTROL =====
+    USE_HARDWARE: bool = os.getenv("USE_HARDWARE", "true").lower() in ("true", "1", "yes")
+
 
 
 settings = Settings()
