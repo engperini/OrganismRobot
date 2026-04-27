@@ -6,7 +6,7 @@ import os
 
 class Settings:
     # ===== LLM =====
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "mock")
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai")
 
     OPENAI_API_KEY: str | None = os.getenv("OPENAI_API_KEY")
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")

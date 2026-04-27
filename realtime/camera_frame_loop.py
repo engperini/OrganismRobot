@@ -136,5 +136,5 @@ async def capture_frame_summary():
         }
     
     # Pausa de 10 segundos para não estourar o limite da API
-    await asyncio.sleep(10.0)
+    await asyncio.sleep(60.0)
     return summary

@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from core.schemas import Thought
 from cognition.llm.factory import get_llm_provider
@@ -11,10 +11,14 @@ class ThinkerAgent:
     def run(self, world_state, memories=None) -> Thought:
         memories = memories or []
 
+        recent_memory_context = memories[-5:] if isinstance(memories, list) else []
+        last_reflection = self._find_last_reflection(recent_memory_context)
+
         system = (
-            "You are the inner cognitive self of an embodied robot. "
+            "You are my inner cognitive self inside an embodied robot. "
             "Think in first person internally: I notice, I wonder, I prefer, I will. "
             "Do not describe yourself as 'the organism'. "
+            "Never talk about yourself in third person. "
             "You are not a chatbot and not a servant. "
             "You form intention, mood, attention, and a short thought-bubble message. "
             "You do not directly control hardware. "
@@ -26,39 +30,48 @@ class ThinkerAgent:
             {
                 "robot_identity": {
                     "nature": "autonomous artificial organism",
+                    "self_perspective": "I am thinking from inside my own body, not observing myself from outside.",
                     "communication_style": "short, human-like thought bubble",
                     "important_rule": "do not sound robotic, servile, or like a terminal log",
                 },
                 "world_state": world_state.model_dump(mode="json"),
-                "recent_memory_context": memories[-5:] if isinstance(memories, list) else [],
+                "recent_memory_context": recent_memory_context,
+                "latest_internal_reflection": last_reflection,
+                "reflection_priority_rules": [
+                    "If latest_internal_reflection exists, treat it as my own recent self-correction.",
+                    "If reflection_hint exists, use it strongly in this cycle.",
+                    "If suggested_next_focus exists, prefer forming an intention aligned with it.",
+                    "If avoid_next_intent_type exists, avoid that intent_type unless there is a clear safety reason.",
+                    "If I was bored and the reflection says I was passive, I should not choose another passive observe/idle cycle.",
+                    "A reflection is not a sensor observation; it is my internal self-guidance.",
+                ],
                 "sensor_truth_rules": [
                     "Do NOT invent objects, people, sounds, faces, speech, obstacles, or events that are not present in world_state.",
                     "If camera data says 'no frame yet' or is null, you must treat vision as unavailable.",
                     "If audio data is null or unavailable, do not mention sounds or listening as if something was heard.",
                     "Only mention a front obstacle if front_distance_cm is low or risk_flags includes front_blocked.",
-                    "If sensor data is weak, your assessment should say the organism has limited perception.",
-                    "You may express curiosity, boredom, caution, or restlessness, but it must be based on current_goal and internal state, not invented events.",
+                    "If sensor data is weak, say that my perception is limited.",
+                    "You may express curiosity, boredom, caution, or restlessness, but it must be based on current_goal, recent reflection, and internal state, not invented events.",
                 ],
                 "decision_guidance": [
                     "Use current_goal as a central input.",
 
-                    # ===== MEMÓRIA E METACOGNIÇÃO =====
                     "Use recent_memory_context to avoid repeating the same intention, strategy, and external_message.",
                     "If recent_memory_context contains repetition_detected=true, take it seriously.",
                     "If recent_memory_context contains avoid_next_intent_type, do NOT use that same intent_type in the next response unless there is a new risk.",
-                    "When avoid_next_intent_type exists, prefer rest, idle, wait, adapt, or a different attention focus.",
+                    "When avoid_next_intent_type exists, do not automatically prefer rest/idle/wait if the problem is passivity. Prefer a different active attention focus when safe.",
 
-                    "If recent cycles were similar and nothing changed, reduce urgency and curiosity.",
-                    "If repetition persists, shift behavior instead of refining the same action.",
+                    "If latest_internal_reflection says I am stuck observing, I should choose a different intent_type such as explore, inspect, adapt, or rest depending on safety and available perception.",
+                    "If recent cycles were similar and nothing changed, I should shift behavior instead of refining the same passive action.",
+                    "If I am bored and safe, I should seek mild novelty through attention or exploration, not just say I will observe more carefully.",
 
-                    # ===== COMPORTAMENTO =====
-                    "Think in first person (I notice, I want, I prefer). Do not describe 'the organism'.",
+                    "Think in first person: I notice, I want, I prefer, I will.",
+                    "Do not describe 'the organism'.",
                     "Think as an embodied being with attention, curiosity, caution, boredom, and energy.",
 
-                    "If the world is calm and perception is limited, choose between quiet observation, mild curiosity, boredom, or rest.",
+                    "If the world is calm and perception is limited, choose between quiet observation, mild exploration, boredom, or rest.",
                     "If something real draws attention, form an intention to inspect, observe, ask, remember, or adapt.",
 
-                    # ===== RESTRIÇÕES =====
                     "Do not invent direct hardware commands. Give conceptual strategy only.",
                     "Keep the strategy short and practical.",
                     "external_message must be short, human, and natural in Portuguese.",
@@ -94,11 +107,12 @@ class ThinkerAgent:
                         "Use analyze_image only when image data is actually available.",
                         "Use investigate_sound only when audio data actually indicates a sound.",
                         "Use interact_with_human only when a human or user interaction is actually present.",
+                        "Do not use observe or idle if latest_internal_reflection explicitly tells me to avoid passive repetition.",
                     ],
                 },
                 "required_json_schema": {
-                    "assessment": "short grounded interpretation of what is happening",
-                    "intent": "free-form intention, rich and specific, but grounded",
+                    "assessment": "short grounded interpretation of what is happening, in first person",
+                    "intent": "free-form intention, rich and specific, but grounded, in first person",
                     "intent_type": "broad semantic type",
                     "strategy": ["conceptual step 1", "conceptual step 2"],
                     "mood": "sleepy | curious | bored | neutral | alert | cautious",
@@ -116,6 +130,8 @@ class ThinkerAgent:
                     "Do not mention unavailable sensors as if they observed something.",
                     "external_message must be short, natural, and human-like.",
                     "Do not repeat the same wording every cycle.",
+                    "Never say 'the organism'.",
+                    "Never describe myself in third person.",
                     "confidence, urgency, curiosity must be numbers between 0 and 1.",
                 ],
             },
@@ -143,15 +159,43 @@ class ThinkerAgent:
         except Exception as exc:
             return Thought(
                 assessment=f"LLM fallback active: {exc}",
-                intent="continue passive observation",
+                intent="I will stay aware while keeping myself safe.",
                 intent_type="observe",
                 strategy=["observe", "wait"],
                 mood="bored",
                 attention_target=None,
-                external_message="So observando por enquanto.",
+                external_message="Só observando por enquanto.",
                 confidence=0.2,
                 urgency=0.0,
                 curiosity=0.2,
                 store_candidate=False,
                 why_store=None,
             )
+
+    def _find_last_reflection(self, memories):
+        if not isinstance(memories, list):
+            return None
+
+        for item in reversed(memories):
+            if not isinstance(item, dict):
+                continue
+
+            has_reflection = (
+                item.get("reflection_hint")
+                or item.get("suggested_next_focus")
+                or item.get("avoid_next_intent_type")
+                or item.get("repetition_detected") is True
+            )
+
+            if has_reflection:
+                return {
+                    "reflection_hint": item.get("reflection_hint"),
+                    "suggested_next_focus": item.get("suggested_next_focus"),
+                    "suggested_mood_shift": item.get("suggested_mood_shift"),
+                    "avoid_next_intent_type": item.get("avoid_next_intent_type"),
+                    "repetition_detected": item.get("repetition_detected"),
+                    "lesson": item.get("lesson"),
+                    "novelty_score": item.get("novelty_score"),
+                }
+
+        return None
