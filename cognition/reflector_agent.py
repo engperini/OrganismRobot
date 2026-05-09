@@ -2,10 +2,19 @@ import json
 import os
 from collections import Counter
 from typing import Any, Optional
-
 from openai import OpenAI
-
 from core.schemas import Reflection
+from pydantic import BaseModel
+
+
+class ReflectionOverride(BaseModel):
+    override: bool = False
+    intent_type: Optional[str] = None
+    mood: Optional[str] = None
+    intent: Optional[str] = None
+    reason: Optional[str] = None
+
+
 
 
 class ReflectorAgent:
@@ -13,6 +22,110 @@ class ReflectorAgent:
         self.model = model or os.getenv("REFLECTOR_MODEL", "gpt-4o-mini")
         self.client = OpenAI()
 
+    #new
+    def review_before_action(self, world_state, thought, recent_context=None) -> ReflectionOverride:
+        recent_context = recent_context or []
+
+        decision = ReflectionOverride(
+            override=False,
+            reason="no_override_needed",
+        )
+
+        try:
+            payload = {
+                "world_state": self._safe_world_state(world_state),
+                "thought": self._safe_object(thought),
+                "recent_context": recent_context[-6:],
+            }
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                temperature=0.2,
+                response_format={"type": "json_object"},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Eu sou meu ReflectorAgent antes da ação. "
+                            "Minha função é revisar minha intenção antes de executar. "
+                            "Eu posso permitir a intenção original ou substituir por uma intenção mais segura, "
+                            "menos repetitiva e mais inteligente. "
+                            "Eu penso sempre em primeira pessoa. "
+                            "Eu respondo somente JSON válido em português."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": f"""
+                        Estou prestes a agir.
+
+                        Dados atuais:
+                        {json.dumps(payload, ensure_ascii=False, indent=2)}
+
+                        Minha tarefa:
+                        - detectar repetição comportamental
+                        - evitar exploração burra
+                        - evitar movimento quando devo observar
+                        - trocar tédio por curiosidade inteligente
+                        - priorizar segurança
+                        - escolher se devo sobrescrever minha intenção
+
+                        Regras:
+                        - Se estou repetindo explore várias vezes, devo preferir observe.
+                        - Se vejo pessoa, criança, mão ou rosto, devo preferir observe ou interact, não avançar.
+                        - Se há obstáculo próximo, devo preferir safe_stop.
+                        - Se camera_summary está vazio, devo preferir observe.
+                        - Não controle motores diretamente.
+                        - Não gere actions.
+                        - Apenas revise intent_type, intent e mood.
+                        - Escreva intent sempre em português do Brasil.
+
+                        Responda somente JSON válido:
+
+                        {{
+                        "override": true,
+                        "intent_type": "observe | explore | interact | avoid | safe_stop | idle",
+                        "intent": "frase curta em primeira pessoa",
+                        "mood": "curious | bored | calm | alert | neutral",
+                        "reason": "motivo curto"
+                        }}
+                        """
+                    },
+                ],
+            )
+
+            raw = response.choices[0].message.content or "{}"
+            data = json.loads(raw)
+
+            decision = ReflectionOverride(
+                override=bool(data.get("override", False)),
+                intent_type=data.get("intent_type"),
+                intent=data.get("intent"),
+                mood=data.get("mood"),
+                reason=data.get("reason") or "llm_review",
+            )
+
+        except Exception as exc:
+            decision = ReflectionOverride(
+                override=False,
+                reason=f"reflector_llm_failed: {exc}",
+            )
+
+        # Trava física obrigatória: segurança não depende da LLM
+        front_distance = getattr(world_state, "front_distance_cm", None)
+
+        if front_distance is not None and front_distance < 20:
+            return ReflectionOverride(
+                override=True,
+                intent_type="safe_stop",
+                intent="Tem algo perto demais à minha frente. Vou parar e observar com cuidado.",
+                mood="alert",
+                reason="hard_safety_front_distance",
+            )
+
+        return decision
+    
+    
     def run(self, world_state, thought, plan, result, recent_context=None) -> Reflection:
         recent_context = recent_context or []
 

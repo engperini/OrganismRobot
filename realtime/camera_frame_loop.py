@@ -8,20 +8,68 @@ from openai import OpenAI
 
 class CameraFrameProvider:
     def __init__(self, camera_index: int = 0):
-        # Inicializa a captura da câmera
-        self.cap = cv2.VideoCapture(camera_index)
-        if not self.cap.isOpened():
-            print("[Camera] Nenhuma câmera encontrada. Verifique a conexão USB.")
-            self.cap = None
+        # just save index to try opening later, to avoid blocking the constructor
+        self.camera_index = camera_index
+        self.cap = None
+
+        #self.cap = cv2.VideoCapture(camera_index)
+        #if not self.cap.isOpened():
+        #    print("[Camera] Nenhuma câmera encontrada. Verifique a conexão USB.")
+        #    self.cap = None
         
         # Inicializa o cliente OpenAI usando a variável de ambiente OPENAI_API_KEY
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def get_latest_frame(self):
-        if self.cap is None:
+    #open camera
+    def open_camera(self, timeout: float =2.0) -> bool:
+        try: 
+            self.cap = cv2.VideoCapture(self.camera_index)
+            start_time = time.time()
+            while not self.cap.isOpened() and (time.time() - start_time) < timeout:
+                time.sleep(0.05)
+            if not self.cap.isOpened():
+                self.cap.release()
+                self.cap = None
+                return False
+            time.sleep(0.5)  # Pequena pausa para estabilizar a câmera
+            return True
+        except Exception as exc:
+            print(f"[Camera] Camera Error: {exc}")
+            self.cap = None
+            return False
+
+    def close_camera(self):
+        if self.cap:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+            finally:
+                self.cap = None
+
+    
+ 
+    
+
+
+    def capture_single_frame(self, timeout: float = 2.0) -> "ndarray|None":
+        """
+        Abre a câmera, captura um único frame e fecha a câmera.
+        Retorna o frame ou None se falhar.
+        """
+        if not self.open_camera(timeout=timeout):
             return None
-        ret, frame = self.cap.read()
-        return frame if ret else None
+
+        try:
+            for _ in range(int(timeout / 0.1)):
+                ret, frame = self.cap.read()
+
+            ret, frame = self.cap.read()
+            return frame if ret else None
+        
+        finally:
+            self.close_camera()
+        
 
     def release(self):
         if self.cap:
@@ -108,7 +156,7 @@ _provider = CameraFrameProvider()
 
 async def capture_frame_summary():
     """Captura o frame e gera o resumo com descrição da IA."""
-    frame = _provider.get_latest_frame()
+    frame = _provider.capture_single_frame(timeout=2.0)
     
     if frame is not None:
         h, w = frame.shape[:2]
@@ -135,6 +183,6 @@ async def capture_frame_summary():
             }
         }
     
-    # Pausa de 10 segundos para não estourar o limite da API
-    await asyncio.sleep(60.0)
+    # Pausa de 60 segundos para não estourar o limite da API
+    await asyncio.sleep(10.0)
     return summary

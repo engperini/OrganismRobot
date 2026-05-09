@@ -114,6 +114,18 @@ async def cognitive_loop():
             #thought = thinker.run(world_state) #antes da memoria
             recent_context = memory_manager.get_recent_context(limit=5)
             thought = thinker.run(world_state, memories=recent_context)
+            override = reflector.review_before_action(world_state, thought, recent_context=recent_context)
+           
+            print(
+                    f"[reflector.pre] override={override.override} "
+                    f"reason={override.reason} "
+                    f"intent_type={override.intent_type}"
+                )
+
+            if override.override:
+                thought.intent_type = override.intent_type
+                thought.intent = override.intent
+                thought.mood = override.mood
 
             llm_dt = time.perf_counter() - llm_started
 
