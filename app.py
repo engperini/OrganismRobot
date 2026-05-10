@@ -29,6 +29,7 @@ from actuation.executor import Executor
 from memory.short_term import ShortTermMemory
 from memory.sqlite_store import SQLiteStore
 from memory.memory_manager import MemoryManager
+from cognition.executive_agent import ExecutiveAgent
 
 
 state_store = StateStore()
@@ -129,7 +130,9 @@ async def cognitive_loop():
 
             llm_dt = time.perf_counter() - llm_started
 
-            plan = compiler.run(thought)
+            #plan = compiler.run(thought) #retornar apos teste
+            
+            plan = ExecutiveAgent().run(world_state, thought=thought, reflection_override=override, recent_context=recent_context) #novo com reflexao pre-acao
 
             exec_started = time.perf_counter()
             result = executor.run_plan(plan, world_state)
