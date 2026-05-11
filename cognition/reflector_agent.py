@@ -226,6 +226,13 @@ Regras importantes:
 - Eu apenas gero reflexão interna para influenciar minha próxima decisão.
 - Se eu estiver bored, com baixa novidade, e continuei em observe ou idle, eu devo reconhecer isso como repetição improdutiva.
 - Segurança física continua sendo prioridade: se houver obstáculo perto ou erro crítico, devo recomendar foco seguro.
+- Não marque repetition_detected=true automaticamente.
+- Só marque repetição se a intenção, ação e cena forem parecidas com ciclos recentes.
+- Se houve mudança física real, como motors.forward, motors.turn_left ou motors.turn_right, isso conta como tentativa ativa, não passividade.
+- Se a ação usou servos.look, motors.forward, motors.turn_left ou motors.turn_right, não diga que fiquei apenas observando.
+- Só use store_structured=true se aprendi algo novo, específico e útil.
+- Se a lesson for genérica ou parecida com a anterior, use store_structured=false.
+- novelty_score deve ser maior que 0 quando houve mudança de posição, direção, foco visual ou percepção nova.
 
 Dados do ciclo:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
@@ -235,13 +242,13 @@ Responda somente JSON válido com exatamente estes campos:
 {{
   "episode_summary": "resumo curto em primeira pessoa",
   "lesson": "aprendizado em primeira pessoa ou null",
-  "repetition_detected": true,
+  "repetition_detected": false,
   "suggested_next_focus": "meu próximo foco em primeira pessoa ou null",
   "suggested_mood_shift": "curious | bored | calm | alert | neutral ou null",
   "avoid_next_intent_type": "observe | idle | explore | approach | avoid | safe_stop ou null",
   "reflection_hint": "orientação interna forte em primeira pessoa ou null",
-  "store_structured": true,
-  "novelty_score": 0.0,
+  "store_structured": false,
+  "novelty_score": 0.5,
   "policy_feedback": {{
     "context_signature": "texto curto",
     "action_signature": "texto curto",

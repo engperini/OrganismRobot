@@ -105,49 +105,58 @@ Dados atuais:
 {json.dumps(payload, ensure_ascii=False, indent=2)}
 
 Minha tarefa:
-- escolher ações corporais concretas
+- escolher ações corporais concretas 
 - usar apenas tools disponíveis
 - transformar intenção interna em comportamento físico claro
-- variar minhas ações corporais
-- evitar repetir sempre a mesma ação
-- ser prudente perto de pessoas, crianças, mãos ou rostos
+- variar minhas ações corporais quando fizer sentido, evitando repetição burra
+- ser prudente perto de pessoas
 - escrever voice_hint em português do Brasil
 
 Definições obrigatórias:
-- observe = olhar ao redor sem mover a base. Use motors.stop + servos.random.
-- explore = explorar fisicamente o ambiente. Use pelo menos uma ação de base: motors.forward, motors.backward, motors.turn_left ou motors.turn_right.
+- observe = olhar ao redor sem mover a base. Use motors.stop + servos.look. servos.look é um olhar direcionado perseguindo algo.
+- explore = explorar fisicamente o ambiente. Use servo.random com pelo menos uma ação de base: motors.forward, motors.backward, motors.turn_left ou motors.turn_right.
 - safe_stop = parada segura. Use motors.stop + servos.center.
 - avoid = afastar ou desviar. Use motors.backward, motors.turn_left ou motors.turn_right.
-- interact = parar a base e prestar atenção socialmente. Use motors.stop e movimento leve de servo.
+- interact = parar a base e prestar atenção socialmente. Use motors.stop e movimento de servo.look.
 
 Regras:
-- Se intent_type for safe_stop: use motors.stop e servos.center.
-- Se intent_type for observe: use motors.stop e servos.random.
-- Se intent_type for explore: use pelo menos uma ação de base, exceto se houver risco concreto.
+- Se intent_type for safe_stop: use motors.stop.
+- Se intent_type for observe: use motors.stop e servos.look.
+- Se intent_type for explore: use pelo menos uma ação de base + servos.random, exceto se houver risco concreto.
 - Se eu não mover a base em explore, o campo reason deve explicar o risco concreto.
 - Não chame exploração visual parada de explore; isso é observe.
+- servos.look: olha para um direcao escolhida. Args: "x": numero entre -0.7 e 0.7, "y": numero entre -0.3 e 0.3. x negativo é esquerda, positivo é direita. y negativo é baixo, positivo é alto.
 - Se front_distance_cm estiver abaixo de 20, não avance.
 - Se front_distance_cm estiver entre 20 e 30, prefira motors.turn_left, motors.turn_right ou motors.backward.
 - Se front_distance_cm estiver acima de 30 ou ausente, posso usar motors.forward, motors.turn_left, motors.turn_right ou motors.backward.
 - Movimento deve ser curto, normalmente duration entre 0.5 e 2.0 segundos.
-- Use no máximo 3 ações.
+- Use no máximo 2 ações combinadas mas nunca repita servos na mesma ação. Pode ser motors.forward + servos.random, mas não servos.random + servos.look.
 - Não invente tools.
 
 Responda somente JSON válido:
 
 {{
   "actions": [
+
+    {{
+        "tool": "servos.look",
+        "args": {{"x": 0.4, "y": 0.3}}
+    }},
+
     {{
       "tool": "servos.random",
       "args": {{}}
     }},
+
+
+
     {{
       "tool": "motors.turn_left",
       "args": {{"duration": 1.0}}
     }}
   ],
-  "voice_hint": "frase curta em português",
-  "reason": "motivo curto"
+  "voice_hint": "vou olhar para esquerda para observar melhor",
+  "reason": "quero ver por completo"
 }}
 """
 

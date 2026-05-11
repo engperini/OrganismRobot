@@ -118,20 +118,32 @@ class RobotCore:
     def turn_left(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.turn_left(d)
+        self.last_snapshot.left_motor_state = "turn_left"
+        self.last_snapshot.right_motor_state = "turn_left"
 
     def turn_right(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.turn_right(d)
+        self.last_snapshot.left_motor_state = "turn_right"
+        self.last_snapshot.right_motor_state = "turn_right"
+
 
     def rotate_left(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.rotate_left(d)
+        self.last_snapshot.left_motor_state = "rotate_left"
+        self.last_snapshot.right_motor_state = "rotate_left"
+
 
     def rotate_right(self, duration: float = None):
         d = duration if duration is not None else self.default_duration
         self.base.rotate_right(d)
+        self.last_snapshot.left_motor_state = "rotate_right"
+        self.last_snapshot.right_motor_state = "rotate_right"
 
     
     def stop_base(self):
         """Parada imediata da base (motores)."""
         self.base.stop()
+        self.last_snapshot.left_motor_state = "stop"
+        self.last_snapshot.right_motor_state = "stop"

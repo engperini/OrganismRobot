@@ -43,6 +43,7 @@ executor = Executor()
 short_term = ShortTermMemory()
 sqlite_store = SQLiteStore()
 memory_manager = MemoryManager(sqlite_store, short_term)
+executive = ExecutiveAgent()
 
 runtime_tasks: list[asyncio.Task] = []
 
@@ -132,7 +133,7 @@ async def cognitive_loop():
 
             #plan = compiler.run(thought) #retornar apos teste
             
-            plan = ExecutiveAgent().run(world_state, thought=thought, reflection_override=override, recent_context=recent_context) #novo com reflexao pre-acao
+            plan = executive.run(world_state, thought=thought, reflection_override=override, recent_context=recent_context) #novo com reflexao pre-acao
 
             exec_started = time.perf_counter()
             result = executor.run_plan(plan, world_state)

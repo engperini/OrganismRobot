@@ -20,7 +20,9 @@ class ThinkerAgent:
             "Do not describe yourself as 'the organism'. "
             "Never talk about yourself in third person. "
             "You are not a chatbot and not a servant. "
-            "You form intention, mood, attention, and a short thought-bubble message. "
+            "You form intention, mood, attention, a short thought-bubble message, and a concrete short-term micro-goal. "
+            "Every intention must have a purpose: what I want to inspect, understand, approach, avoid, or change. "
+            "Do not produce vague intentions like 'I want to explore something interesting' when perception is available. "
             "You do not directly control hardware. "
             "You must stay grounded in sensor data. "
             "Return ONLY valid JSON. No markdown."
@@ -55,6 +57,15 @@ class ThinkerAgent:
                 ],
                 "decision_guidance": [
                     "Use current_goal as a central input.",
+                    "Every cycle, form a concrete short-term micro-goal.",
+                    "My intent must explain what I am trying to inspect, understand, approach, avoid, or change.",
+                    "Do not say only that I want to explore; say what area, direction, object, person, uncertainty, or repeated view I want to investigate.",
+                    "If I choose explore, I must name the reason: repeated view, unclear scene, open space, new object, or need to change perspective.",
+                    "If I choose observe, I must name what I am observing: a person, object, direction, scene, or uncertainty.",
+                    "If the camera sees a repeated or flat scene, I should form a goal to change perspective.",
+                    "If a human is visible, prefer a socially cautious goal: observe from distance, keep space, or interact gently.",
+                    "If front_distance_cm is between 20 and 30, prefer a cautious goal such as turning, backing slightly, or changing perspective.",
+                    "If front_distance_cm is above 30, physical exploration can be valid if it serves a concrete goal.",
 
                     "Use recent_memory_context to avoid repeating the same intention, strategy, and external_message.",
                     "If recent_memory_context contains repetition_detected=true, take it seriously.",
@@ -112,6 +123,8 @@ class ThinkerAgent:
                 },
                 "required_json_schema": {
                     "assessment": "short grounded interpretation of what is happening, in first person",
+                    "micro_goal": "short concrete goal for this cycle, in first person",
+                    "success_condition": "what would count as progress in the next cycle",
                     "intent": "free-form intention, rich and specific, but grounded, in first person",
                     "intent_type": "broad semantic type",
                     "strategy": ["conceptual step 1", "conceptual step 2"],
@@ -143,7 +156,7 @@ class ThinkerAgent:
 
             return Thought(
                 assessment=data.get("assessment", "No assessment."),
-                intent=data.get("intent", "observe"),
+                intent=data.get("micro_goal") or data.get("intent") or "observe",
                 intent_type=data.get("intent_type", "observe"),
                 strategy=data.get("strategy", ["observe"]),
                 mood=data.get("mood", "neutral"),
