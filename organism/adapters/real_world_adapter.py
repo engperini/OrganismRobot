@@ -1,13 +1,13 @@
-import asyncio
+﻿import asyncio
 import os
 import platform
 
-from realtime.distance_loop import read_distance
-from realtime.battery_loop import read_battery_pct
-from realtime.motor_state_loop import read_motor_state
-from realtime.servo_state_loop import read_servo_state
-from realtime.error_loop import read_last_error
-from realtime.camera_frame_loop import capture_frame_summary
+from organism.sensors.distance_sensor import read_distance
+from organism.sensors.battery_sensor import read_battery_pct
+from organism.sensors.motor_state_sensor import read_motor_state
+from organism.sensors.servo_state_sensor import read_servo_state
+from organism.sensors.error_sensor import read_last_error
+from organism.sensors.camera_sensor import capture_frame_summary
 
 
 class RealWorldAdapter:
@@ -18,7 +18,6 @@ class RealWorldAdapter:
         print(f"[adapter] RealWorldAdapter initialized mode={self.runtime_mode}")
 
     def _detect_runtime_mode(self):
-        system = platform.system().lower()
         machine = platform.machine().lower()
 
         if self.use_hardware and ("arm" in machine or "aarch64" in machine):
@@ -41,7 +40,6 @@ class RealWorldAdapter:
     def observe(self):
         try:
             camera_summary = self._run_async(capture_frame_summary())
-
             distance = self._run_async(read_distance())
             battery = self._run_async(read_battery_pct())
             motor_state = self._run_async(read_motor_state())
