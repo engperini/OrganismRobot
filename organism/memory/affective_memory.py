@@ -1,6 +1,15 @@
-﻿class AffectiveMemory:
+﻿import unicodedata
+
+
+class AffectiveMemory:
     def __init__(self):
         self.items = []
+
+    def _normalize(self, text):
+        text = str(text or "").lower().strip()
+        text = unicodedata.normalize("NFD", text)
+        text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+        return text
 
     def remember(self, item):
         self.items.append(item)
@@ -21,11 +30,8 @@
             perception = item.get("perception", {})
             camera = perception.get("camera_summary") or {}
             llm = camera.get("llm_description") or {}
-            desc = llm.get("description", "")
-            descriptions.append(desc.lower().strip())
-
-        if len(descriptions) < 3:
-            return False
+            desc = self._normalize(llm.get("description", ""))
+            descriptions.append(desc)
 
         keywords = [
             "carregamento",
@@ -34,6 +40,8 @@
             "preto",
             "branco",
             "loading",
+            "icone",
+            "fundo preto",
         ]
 
         score = 0
