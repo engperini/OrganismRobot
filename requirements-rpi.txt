@@ -1,0 +1,7 @@
+openai
+python-dotenv
+opencv-python
+numpy
+gpiozero
+pigpio
+RPi.GPIO
