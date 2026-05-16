@@ -1,4 +1,4 @@
-class AffectiveMemory:
+ï»¿class AffectiveMemory:
     def __init__(self):
         self.items = []
 
@@ -16,6 +16,7 @@ class AffectiveMemory:
             return False
 
         descriptions = []
+
         for item in recent:
             perception = item.get("perception", {})
             camera = perception.get("camera_summary") or {}
@@ -26,7 +27,15 @@ class AffectiveMemory:
         if len(descriptions) < 3:
             return False
 
-        keywords = ["carregamento", "círculo", "circular", "preto", "branco", "loading"]
+        keywords = [
+            "carregamento",
+            "circulo",
+            "circular",
+            "preto",
+            "branco",
+            "loading",
+        ]
+
         score = 0
 
         for desc in descriptions[-3:]:
