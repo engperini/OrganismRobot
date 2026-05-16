@@ -1,8 +1,10 @@
+import time
+
 from organism.adapters.real_world_adapter import RealWorldAdapter
 from organism.cognition.brain_core import BrainCore
 from organism.state.internal_state import InternalState
 from organism.memory.affective_memory import AffectiveMemory
-import time
+from organism.actuation.hardware_bridge import HardwareBridge
 
 
 def main():
@@ -12,31 +14,46 @@ def main():
     brain = BrainCore()
     state = InternalState()
     memory = AffectiveMemory()
+    hardware = HardwareBridge()
 
-    while True:
-        perception = world.observe()
+    try:
+        while True:
+            perception = world.observe()
 
-        thought = brain.think(
-            world=perception,
-            state=state,
-            memory=memory,
-        )
+            thought = brain.think(
+                world=perception,
+                state=state,
+                memory=memory,
+            )
 
-        print("")
-        print("===================================================")
-        print("[PERCEPTION]")
-        print(perception)
+            action_result = hardware.execute(thought["action"])
 
-        print("")
-        print("[THOUGHT]")
-        print(thought)
+            print("")
+            print("===================================================")
+            print("[PERCEPTION]")
+            print(perception)
 
-        memory.remember({
-            "perception": perception,
-            "thought": thought,
-        })
+            print("")
+            print("[THOUGHT]")
+            print(thought)
 
-        time.sleep(2)
+            print("")
+            print("[ACTION_RESULT]")
+            print(action_result)
+
+            memory.remember({
+                "perception": perception,
+                "thought": thought,
+                "action_result": action_result,
+            })
+
+            time.sleep(2)
+
+    except KeyboardInterrupt:
+        print("[runtime] stopped by user")
+
+    finally:
+        hardware.shutdown()
 
 
 if __name__ == "__main__":
