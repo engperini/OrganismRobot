@@ -1,4 +1,4 @@
-class BrainCore:
+ï»¿class BrainCore:
     def __init__(self):
         print("[brain] BrainCore initialized")
 
@@ -37,19 +37,19 @@ class BrainCore:
         elif repeated and runtime_mode == "raspberry_hardware":
             intent = "change_perspective"
             mood = "curious"
-            inner_voice = "Essa visão repetiu. Vou mudar minha perspectiva."
+            inner_voice = "Essa visao repetiu. Vou mudar minha perspectiva."
             action = {"name": "motors.turn_left", "args": {"duration": 0.7}}
 
         elif saw_scene:
             intent = "observe_scene"
             mood = "curious"
-            inner_voice = "Isso chamou minha atenção."
+            inner_voice = "Isso chamou minha atencao."
             action = {"name": "servos.random", "args": {}}
 
         else:
             intent = "search_for_input"
             mood = "bored"
-            inner_voice = "Minha percepção está fraca. Vou centralizar."
+            inner_voice = "Minha percepcao esta fraca. Vou centralizar."
             action = {"name": "servos.center", "args": {}}
 
         return {
