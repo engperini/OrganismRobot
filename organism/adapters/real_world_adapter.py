@@ -1,4 +1,6 @@
 import asyncio
+import os
+import platform
 
 from realtime.distance_loop import read_distance
 from realtime.battery_loop import read_battery_pct
@@ -10,7 +12,19 @@ from realtime.camera_frame_loop import capture_frame_summary
 
 class RealWorldAdapter:
     def __init__(self):
-        print("[adapter] RealWorldAdapter initialized")
+        self.use_hardware = os.getenv("USE_HARDWARE", "false").lower() == "true"
+        self.runtime_mode = self._detect_runtime_mode()
+
+        print(f"[adapter] RealWorldAdapter initialized mode={self.runtime_mode}")
+
+    def _detect_runtime_mode(self):
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+
+        if self.use_hardware and ("arm" in machine or "aarch64" in machine):
+            return "raspberry_hardware"
+
+        return "pc_simulation"
 
     def _run_async(self, coro):
         try:
@@ -26,31 +40,17 @@ class RealWorldAdapter:
 
     def observe(self):
         try:
-            camera_summary = self._run_async(
-                capture_frame_summary()
-            )
+            camera_summary = self._run_async(capture_frame_summary())
 
-            distance = self._run_async(
-                read_distance()
-            )
-
-            battery = self._run_async(
-                read_battery_pct()
-            )
-
-            motor_state = self._run_async(
-                read_motor_state()
-            )
-
-            servo_state = self._run_async(
-                read_servo_state()
-            )
-
-            last_error = self._run_async(
-                read_last_error()
-            )
+            distance = self._run_async(read_distance())
+            battery = self._run_async(read_battery_pct())
+            motor_state = self._run_async(read_motor_state())
+            servo_state = self._run_async(read_servo_state())
+            last_error = self._run_async(read_last_error())
 
             return {
+                "runtime_mode": self.runtime_mode,
+                "use_hardware": self.use_hardware,
                 "camera_summary": camera_summary,
                 "distance_front_cm": distance,
                 "battery_pct": battery,
@@ -61,5 +61,7 @@ class RealWorldAdapter:
 
         except Exception as exc:
             return {
-                "adapter_error": str(exc)
+                "runtime_mode": self.runtime_mode,
+                "use_hardware": self.use_hardware,
+                "adapter_error": str(exc),
             }
