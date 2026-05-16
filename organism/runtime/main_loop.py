@@ -1,4 +1,4 @@
-import time
+﻿import time
 
 from organism.adapters.real_world_adapter import RealWorldAdapter
 from organism.cognition.brain_core import BrainCore
@@ -28,6 +28,18 @@ def main():
 
             action_result = hardware.execute(thought["action"])
 
+            reflection = brain.reflect_after_action(
+                action_result=action_result,
+                state=state,
+            )
+
+            memory.remember({
+                "perception": perception,
+                "thought": thought,
+                "action_result": action_result,
+                "reflection": reflection,
+            })
+
             print("")
             print("===================================================")
             print("[PERCEPTION]")
@@ -41,11 +53,9 @@ def main():
             print("[ACTION_RESULT]")
             print(action_result)
 
-            memory.remember({
-                "perception": perception,
-                "thought": thought,
-                "action_result": action_result,
-            })
+            print("")
+            print("[REFLECTION]")
+            print(reflection)
 
             time.sleep(2)
 
